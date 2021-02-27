@@ -1,0 +1,29 @@
+Loading Test set...
+Using Mean Squared Error Loss
+Computing the F1 Score on the test set...
+Traceback (most recent call last):
+  File "spen_multilabel.py", line 196, in <module>
+    main()
+  File "spen_multilabel.py", line 192, in main
+    run_test_set(PATH_BIBTEX, PATH_MODELS_ML_BIB, path_feature_extractor)
+  File "spen_multilabel.py", line 159, in run_test_set
+    spen.valid(test_loader)
+  File "spen_multilabel.py", line 131, in valid
+    pred_labels, loss = self._compute_loss(inputs, targets, False)
+  File "spen_multilabel.py", line 74, in _compute_loss
+    f_x = self.feature_extractor(inputs)
+  File "/cm/shared/apps/python/3.7.4-1910/lib/python3.7/site-packages/torch/nn/modules/module.py", line 5\
+47, in __call__
+    result = self.forward(*input, **kwargs)
+  File "../../src/multilabel_classification/model/feature_mlp.py", line 34, in forward
+    x = F.relu(self.fc1(x))
+  File "/cm/shared/apps/python/3.7.4-1910/lib/python3.7/site-packages/torch/nn/modules/module.py", line 5\
+47, in __call__
+    result = self.forward(*input, **kwargs)
+  File "/cm/shared/apps/python/3.7.4-1910/lib/python3.7/site-packages/torch/nn/modules/linear.py", line 8\
+7, in forward
+    return F.linear(input, self.weight, self.bias)
+  File "/cm/shared/apps/python/3.7.4-1910/lib/python3.7/site-packages/torch/nn/functional.py", line 1369,\
+ in linear
+    ret = torch.addmm(bias, input, weight.t())
+RuntimeError: Expected object of backend CPU but got backend CUDA for argument #4 'mat1'
