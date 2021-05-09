@@ -51,3 +51,6 @@ class GroundTruthSampler(Sampler):
             None,
         )  # because labels will have shape (batch, ...)
         # and samples should have shape (batch, num_samples, ...)
+
+    def get_metrics(self, reset: bool = False) -> dict:
+        return self._metrics

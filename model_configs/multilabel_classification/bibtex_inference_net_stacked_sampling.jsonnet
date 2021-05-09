@@ -22,6 +22,8 @@ local global_score_hidden_dim = std.parseJson(std.extVar('global_score_hidden_di
 local cross_entorpy_loss_weight = std.parseJson(std.extVar('cross_entorpy_loss_weight'));
 local inference_score_weight = std.parseJson(std.extVar('inference_score_weight'));
 local oracle_cost_weight = std.parseJson(std.extVar('oracle_cost_weight'));
+local sample_loss_weight = std.parseJson(std.extVar('sample_loss_weight'));
+local num_samples = std.parseJson(std.extVar('num_samples'));
 local gain = (if ff_activation == 'tanh' then 5 / 3 else 1);
 
 {
@@ -47,7 +49,7 @@ local gain = (if ff_activation == 'tanh' then 5 / 3 else 1);
   model: {
     type: 'multi-label-classification',
     sampler: {
-      type: 'inference-network',
+      type: 'infnet-multi-sample-learner',
       optimizer: {
         lr: 0.001,
         weight_decay: 1e-4,
@@ -94,6 +96,17 @@ local gain = (if ff_activation == 'tanh' then 5 / 3 else 1);
         loss_weights: [1.0, cross_entorpy_loss_weight],
         reduction: 'mean',
       },
+      loss_fn_sample: {
+        reduction: "none",
+        type: "multi-label-bce-unreduced"
+      },
+      loss_fn_for_grad: {
+        type: 'multi-label-inference-score',
+        inference_score_weight: inference_score_weight,
+        reduction: 'none'
+      },
+      sample_loss_weight: sample_loss_weight,
+      num_samples: num_samples,
       stopping_criteria: 10,
     },
     oracle_value_function: { type: 'per-instance-f1', differentiable: true },

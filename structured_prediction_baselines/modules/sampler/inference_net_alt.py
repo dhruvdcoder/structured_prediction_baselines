@@ -32,7 +32,7 @@ from structured_prediction_baselines.modules.task_nn import (
 )
 
 
-@Sampler.register("inference-network", constructor="from_partial_objects")
+@Sampler.register("inference-network-alt", constructor="from_partial_objects")
 class InferenceNetSampler(Sampler):
     def __init__(
         self,
@@ -63,6 +63,7 @@ class InferenceNetSampler(Sampler):
             )
         else:
             self.stopping_criteria = stopping_criteria
+        self._eval_grad = False
 
     @property
     def is_normalized(self) -> bool:
@@ -80,7 +81,6 @@ class InferenceNetSampler(Sampler):
         cost_augmented_layer: Optional[CostAugmentedLayer] = None,
         oracle_value_function: Optional[OracleValueFunction] = None,
         stopping_criteria: Union[int, StoppingCriteria] = 1,
-        eval_grad: bool = True,
         name: str = 'inf_net',
     ) -> "InferenceNetSampler":
         loss_fn_ = loss_fn.construct(
@@ -106,7 +106,6 @@ class InferenceNetSampler(Sampler):
             cost_augmented_layer=cost_augmented_layer,
             oracle_value_function=oracle_value_function,
             stopping_criteria=stopping_criteria,
-            eval_grad=eval_grad,
             name=name
         )
 
@@ -205,21 +204,26 @@ class InferenceNetSampler(Sampler):
                 step_number = 0
                 loss_value: Union[torch.Tensor, float] = float("inf")
 
-                while not self.stopping_criteria(
-                    step_number, float(loss_value)
-                ):
-                    self.optimizer.zero_grad(set_to_none=True)
+                if self._eval_grad:
+                    while not self.stopping_criteria(
+                        step_number, float(loss_value)
+                    ):
+                        self.optimizer.zero_grad(set_to_none=True)
+                        y_inf, y_cost_aug = self._get_values(x, labels, buffer)
+                        loss_value = self.update(
+                            y_inf, y_cost_aug, buffer, loss_fn
+                        )
+
+                        loss_values.append(float(loss_value))
+
+                        step_number += 1
+                    self._metrics['inf_net_loss'] = np.mean(loss_values)
+                    self._total_loss += np.mean(loss_values)
+                    self._num_batches += 1
+                    self._eval_grad = False
+                else:
                     y_inf, y_cost_aug = self._get_values(x, labels, buffer)
-                    loss_value = self.update(
-                        y_inf, y_cost_aug, buffer, loss_fn
-                    )
-
-                    loss_values.append(float(loss_value))
-
-                    step_number += 1
-                self._metrics[self.name + '_loss'] = np.mean(loss_values)
-                self._total_loss += np.mean(loss_values)
-                self._num_batches += 1
+                    self._eval_grad = True
 
             # once out of Sampler, y_inf and y_cost_aug should not get gradients
             return (
@@ -281,7 +285,7 @@ class InferenceNetSampler(Sampler):
 
         return y_inf, y_cost_aug
 
-    def get_metrics(self, reset: bool = False):
+    def get_metrics(self, reset: bool = False) -> dict:
         metrics = self._metrics
         metrics['total_' + self.name + '_loss'] = float(
             self._total_loss / self._num_batches) if self._num_batches > 0 else 0.0
@@ -292,6 +296,8 @@ class InferenceNetSampler(Sampler):
             metrics.pop(self.name + '_loss', None)
         else:
             loss_metrics = self.loss_fn.get_metrics(reset=True)
+            for metric in loss_metrics:
+                loss_metrics[metric] /= self.stopping_criteria.number_of_steps
             metrics.update(loss_metrics)
 
         return metrics

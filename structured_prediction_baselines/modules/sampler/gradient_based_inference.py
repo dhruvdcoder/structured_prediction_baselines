@@ -249,11 +249,13 @@ class GradientBasedInferenceSampler(Sampler):
         sample_picker: SamplePicker = None,
         number_init_samples: int = 1,
         random_mixing_in_init: float = 0.5,
+        name: str = 'gbi',
         **kwargs: Any,
     ):
         super().__init__(
             score_nn,
             oracle_value_function,
+            name
         )
         self.loss_fn = loss_fn
         assert self.loss_fn.reduction == "none", "We do reduction or our own"
@@ -277,6 +279,7 @@ class GradientBasedInferenceSampler(Sampler):
         sample_picker: SamplePicker = None,
         number_init_samples: int = 1,
         random_mixing_in_init: float = 0.5,
+        name: str = 'gbi',
     ) -> "GradientBasedInferenceSampler":
         loss_fn_ = loss_fn.construct(
             score_nn=score_nn, oracle_value_function=oracle_value_function
@@ -292,6 +295,7 @@ class GradientBasedInferenceSampler(Sampler):
             sample_picker=sample_picker,
             number_init_samples=number_init_samples,
             random_mixing_in_init=random_mixing_in_init,
+            name=name
         )
 
     def get_loss_fn(
@@ -440,7 +444,6 @@ class GradientBasedInferenceSampler(Sampler):
             labels = labels.unsqueeze(1)
         # switch of gradients on parameters using context manager
         with self.no_param_grad():
-
             loss_fn = self.get_loss_fn(
                 x,
                 labels,
@@ -458,6 +461,9 @@ class GradientBasedInferenceSampler(Sampler):
             )
 
         # print(f"\nloss_values:\n{loss_values}")
+        self._metrics[self.name + '_loss'] = np.mean(loss_values)
+        self._total_loss += np.mean(loss_values)
+        self._num_batches += 1
 
         return (
             self.get_samples_from_trajectory(
@@ -465,3 +471,14 @@ class GradientBasedInferenceSampler(Sampler):
             ),  # (batch, num_samples, ...)
             torch.tensor(loss_values),
         )
+
+    def get_metrics(self, reset: bool = False) -> dict:
+        metrics = self._metrics
+        metrics['total_' + self.name + '_loss'] = float(
+            self._total_loss / self._num_batches) if self._num_batches > 0 else 0.0
+        if reset:
+            self._metrics = {}
+            self._total_loss = 0.0
+            self._num_batches = 0
+            metrics.pop(self.name + '_loss', None)
+        return metrics
