@@ -1,0 +1,25 @@
+name: conll2003_bilstm_tasknn
+description: "Train tasknn using cross-entropy."
+program: allennlp
+command:
+- ${program}
+- train_with_wandb
+- model_configs/sequence_tagging/conll2003_tasknn_bilstm.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb_tags="task=seqtag,model=nce,sampler=nce_discrete_samples,dataset=conll2003,inference_module=inference_net,inference_module=tasknn"
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_f1-measure-overall"
+
+early_terminate:
+  type: hyperband
+  min_iter: 20
+
+parameters:
+  trainer.optimizer.optimizers.task_nn.lr:
+    distribution: log_uniform
+    min: -12.5
+    max: -4.5 

@@ -1,6 +1,8 @@
 from typing import List, Tuple, Union, Dict, Any, Optional
 from allennlp.common.registrable import Registrable
 import torch
+from allennlp.modules import FeedForward
+
 from .task_nn import TaskNN
 from .structured_score.structured_score import StructuredScore
 
@@ -12,10 +14,14 @@ class ScoreNN(torch.nn.Module, Registrable):
         self,
         task_nn: TaskNN,  # (batch, ...)
         global_score: Optional[StructuredScore] = None,
+        residual_x: bool = False,
+        tag_projection_layer: Optional[FeedForward] = None,
         **kwargs: Any,
     ):
         super().__init__()  # type:ignore
         self.task_nn = task_nn
+        self.tag_projection_layer = tag_projection_layer
+        self.residual_x = residual_x
         self.global_score = global_score
         self._dtype = self.compute_input_dtype()
 

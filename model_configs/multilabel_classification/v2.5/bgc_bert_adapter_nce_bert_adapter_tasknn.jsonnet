@@ -30,6 +30,9 @@ local cross_entropy_loss_weight = std.parseJson(std.extVar('cross_entropy_loss_w
 local score_loss_weight = std.parseJson(std.extVar('score_loss_weight'));
 
 
+
+
+
 local feature_network = {
   text_field_embedder: {
     token_embedders: {
@@ -71,7 +74,6 @@ local feature_network = {
       model_name: transformer_model,
       max_length: 512,
     },
-
   },
   train_data_path: (data_dir + '/' + dataset_metadata.dir_name + '/' +
                     dataset_metadata.train_file),
@@ -79,7 +81,6 @@ local feature_network = {
                          dataset_metadata.validation_file),
   test_data_path: (data_dir + '/' + dataset_metadata.dir_name + '/' +
                    dataset_metadata.test_file),
-
 vocabulary: {
         type: 'from_files',
         directory: data_dir + '/' + dataset_metadata.dir_name + '/' + 'bert_vocab'

@@ -63,7 +63,7 @@ local task_nn = {
                    dataset_metadata.test_file),
   // Model
   model: {
-    type: 'sequence-tagging-with-infnet',
+    type: 'seal-ner',
     label_encoding: 'BIOUL',
     sampler: {
       type: 'appending-container',
@@ -114,9 +114,11 @@ local task_nn = {
     score_nn: {
       type: 'sequence-tagging',
       task_nn: task_nn,
+      residual_x: true,
       global_score: {
         type: 'self-attention-full-sequence',
         num_tags: num_labels,
+        input_dim: num_labels + transformer_hidden_dim,
         num_heads: 1,
         attention_dim: 300,
         output_dim: 100,

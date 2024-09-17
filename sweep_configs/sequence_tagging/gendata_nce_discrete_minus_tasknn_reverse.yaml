@@ -1,0 +1,49 @@
+name: [data_name]_nce_discrete_minus_tasknn_reverse
+description: "Train tasknn using cross-entropy and  score loss (v(f(x),y)). The score-nn will be trained using NCE with a - sign (score-ln Pn). The samples are taken as discrete samples from the tasknn output."
+program: allennlp
+command:
+- ${program}
+- train_with_wandb
+- model_configs/sequence_tagging/gendata_seal_nce_bilstm.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb_tags="task=seqtag,model=nce,sampler=nce_discrete_samples,dataset=[data_name],inference_module=inference_net,inference_module=tasknn"
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_f1-measure-overall"
+
+early_terminate:
+  type: hyperband
+  min_iter: 20
+
+parameters:
+  env.dataset_name:
+    value: '[data_name]'
+  env.cross_entropy_loss_weight:
+    value: 1.0
+  env.dvn_score_loss_weight:
+    distribution: log_uniform
+    min: -6.9
+    max: 2.3
+  trainer.optimizer.optimizers.task_nn.lr:
+    distribution: log_uniform
+    min: -12.5
+    max: -4.5 
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    min: -11.5
+    max: -4.5
+  env.score_nn_steps:
+    value: 1
+    # distribution: q_uniform
+    # min: 0
+    # max: 11.99
+    # q: 3
+  model.loss_fn.num_samples:
+    value: 100
+    # distribution: q_uniform
+    # q: 20 # 10, 25, ..., 50
+    # min: 20 # ln(10)
+    # max: 100 # ln(50)

@@ -283,8 +283,12 @@ class SequenceTaggingModel(ScoreBasedLearningModel):
 
 
 @Model.register(
+    "seal-ner-multi-task",
+    constructor="from_partial_objects_with_shared_tasknn"
+)
+@Model.register(
     "seal-ner",
-    constructor="from_partial_objects_with_shared_tasknn",
+    constructor="from_partial_objects_with_inference_module_as_sampler",
 )
 @Model.register(
     "ner-seperate-inference-and-training-network",
@@ -366,8 +370,12 @@ class NERModel(SequenceTaggingModel):
 
 
 @Model.register(
+    "seal-srl-multi-task",
+    constructor="from_partial_objects_with_shared_tasknn"
+)
+@Model.register(
     "seal-srl",
-    constructor="from_partial_objects_with_shared_tasknn",
+    constructor="from_partial_objects_with_inference_module_as_sampler",
 )
 @Model.register(
     "srl-seperate-inference-and-training-network",

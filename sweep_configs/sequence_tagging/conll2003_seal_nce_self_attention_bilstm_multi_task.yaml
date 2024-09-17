@@ -1,0 +1,49 @@
+name: conll2003_seal_nce_discrete_self_attention_bilstm_multi_task
+program: allennlp
+command:
+- ${program}
+- train-with-wandb
+- model_configs/sequence_tagging/conll2003_seal_nce_self_attention_bilstm_multi_task.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags="mode=multi_task,task=seqtag,model=nce,sampler=nce_discrete_samples,dataset=conll2003,inference_module=inference_net,inference_module=tasknn,structured_score=self_attention"
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_f1-measure-overall"
+
+early_terminate:
+  type: hyperband
+  min_iter: 20
+
+parameters:
+  env.cross_entropy_loss_weight:
+    value: 1.0
+  env.ff_weight_decay:
+    value: 1e-5
+  env.score_loss_weight:
+    distribution: log_uniform
+    min: -6.9
+    max: 2.3
+  env.task_nn_lr:
+    distribution: log_uniform
+    min: -12.5
+    max: -4.5
+  env.score_nn_lr:
+    distribution: log_uniform
+    min: -11.5
+    max: -4.5
+  env.score_nn_steps:
+    value: 1
+  model.loss_fn.num_samples:
+    value: 100
+  env.attention_dim:
+    distribution: q_uniform
+    min: 49 # 50
+    max: 249 # 200
+    q: 50
+  env.attention_dropout_10x:
+    distribution: q_uniform
+    min: 0.5 # 1
+    max: 5.49 # 5

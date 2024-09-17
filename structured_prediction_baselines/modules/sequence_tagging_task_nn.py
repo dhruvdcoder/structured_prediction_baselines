@@ -1,3 +1,5 @@
+import logging
+
 from .task_nn import TaskNN, CostAugmentedLayer
 from typing import List, Tuple, Union, Dict, Any, Optional
 import torch
@@ -12,6 +14,8 @@ from torch.nn.modules.linear import Linear
 import torch.nn.functional as F
 import allennlp.nn.util as util
 
+logger = logging.getLogger(__name__)
+
 
 @TaskNN.register("sequence-tagging")
 class SequenceTaggingTaskNN(TaskNN):
@@ -23,6 +27,8 @@ class SequenceTaggingTaskNN(TaskNN):
         feedforward: Optional[FeedForward] = None,
         dropout: float = 0,
         label_namespace: str = "labels",
+        project_onto_tags: bool = True
+
     ):
         """
 
@@ -50,10 +56,13 @@ class SequenceTaggingTaskNN(TaskNN):
         if output_dim is None:
             raise ValueError("output_dim cannot be None")
 
-        self.tag_projection_layer = TimeDistributed(
-            Linear(output_dim, self.num_tags)
-        )  # equivalent to Uj.b(x,t) in eq (3)
-
+        if project_onto_tags:
+            self.tag_projection_layer = TimeDistributed(
+                Linear(output_dim, self.num_tags)
+            )  # equivalent to Uj.b(x,t) in eq (3)
+        else:
+            self.tag_projection_layer = None
+            logger.warning("Tag Projection Layer set to None. TaskNN would return encoded text instead of logits.")
         if dropout:
             self.dropout: Optional[torch.nn.Module] = torch.nn.Dropout(dropout)
         else:
@@ -71,7 +80,7 @@ class SequenceTaggingTaskNN(TaskNN):
         buffer["mask"] = mask
 
         embedded_text_input = self.text_field_embedder(tokens)
-
+        buffer["embedded_x"] = embedded_text_input
         if self.encoder:
             encoded_text = self.encoder(embedded_text_input, mask)
         else:
@@ -83,11 +92,14 @@ class SequenceTaggingTaskNN(TaskNN):
         if self.feedforward:
             encoded_text = self.feedforward(encoded_text)
 
-        logits = self.tag_projection_layer(encoded_text)
+        if self.tag_projection_layer:
+            logits = self.tag_projection_layer(encoded_text)
 
-        return (
-            logits  # shape (batch, sequence, num_tags) of unormalized logits
-        )
+            return (
+                logits  # shape (batch, sequence, num_tags) of unormalized logits
+            )
+
+        return encoded_text  # shape (batch, sequence, output_dim)
 
 
 @CostAugmentedLayer.register("sequence-tagging-stacked")

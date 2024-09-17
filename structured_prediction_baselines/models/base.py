@@ -42,10 +42,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
+@Model.register(
+    "multi-task-score-based-learning-with-infnet",
+    constructor="from_partial_objects_with_shared_tasknn"
+)
 @Model.register(
     "score-based-learning-with-infnet",
-    constructor="from_partial_objects_with_shared_tasknn",
+    constructor="from_partial_objects_with_inference_module_as_sampler",
 )
 @Model.register("score-based-learning", constructor="from_partial_objects")
 class ScoreBasedLearningModel(LoggingMixin, Model):
@@ -208,7 +211,7 @@ class ScoreBasedLearningModel(LoggingMixin, Model):
                 yield param
 
     @classmethod
-    def from_partial_objects_with_shared_tasknn(
+    def from_partial_objects_with_inference_module_as_sampler(
         cls,
         vocab: Vocabulary,
         loss_fn: Lazy[Loss],
@@ -224,7 +227,8 @@ class ScoreBasedLearningModel(LoggingMixin, Model):
     ) -> "ScoreBasedLearningModel":
         """
         This constructor is used only when the `sampler` is an instance of `SamplerContainer`
-        and we wish to use tasknn as both the inference_module and a sampler in the constituent sampler.
+        and we wish to use inference_module as a sampler in the constituent sampler i.e. share tasknn with both
+        infrence_module and sampler
         """
         infnet_sampler = inference_module.construct(
             inference_nn=task_nn,
@@ -289,6 +293,97 @@ class ScoreBasedLearningModel(LoggingMixin, Model):
             loss_fn=loss_fn_,
             oracle_value_function=oracle_value_function,
             score_nn=score_nn,
+            inference_module=inference_module_,
+            evaluation_module=evaluation_module_,
+            regularizer=regularizer,
+            initializer=initializer,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_partial_objects_with_shared_tasknn(
+        cls,
+        vocab: Vocabulary,
+        loss_fn: Lazy[Loss],
+        inference_module: Lazy[Sampler],
+        task_nn: TaskNN,
+        sampler: Optional[Lazy[SamplerContainer]] = None,
+        score_nn: Optional[Lazy[ScoreNN]] = None,
+        oracle_value_function: Optional[OracleValueFunction] = None,
+        evaluation_module: Optional[Lazy[Sampler]] = None,
+        regularizer: Optional[RegularizerApplicator] = None,
+        initializer: Optional[InitializerApplicator] = None,
+        **kwargs: Any,
+    ) -> "ScoreBasedLearningModel":
+        """
+        This constructor is used only when the `sampler` is an instance of `SamplerContainer`
+        and we wish to use inference_module as a sampler in the constituent sampler and share the tasknn among
+        the inference_module, sampler and scorenn thereby training the tasknn using `Multi-Task` objective.
+        """
+        score_nn_ = score_nn.construct(task_nn=task_nn)
+        infnet_sampler = inference_module.construct(
+            inference_nn=task_nn,
+            score_nn=score_nn_,
+            oracle_value_function=oracle_value_function,
+        )
+
+        if oracle_value_function is not None:
+            if sampler is None:
+                sampler_ = AppendingSamplerContainer(
+                    score_nn=score_nn_,
+                    oracle_value_function=oracle_value_function,
+                    constituent_samplers=[],
+                    log_key="sampler",
+                )
+            else:
+                sampler_ = sampler.construct(
+                    score_nn=score_nn_,
+                    oracle_value_function=oracle_value_function,
+                )
+            loss_fn_ = loss_fn.construct(
+                score_nn=score_nn_, oracle_value_function=oracle_value_function
+            )
+        else:
+            if sampler is None:
+                sampler_ = AppendingSamplerContainer(
+                    score_nn=score_nn_,
+                    constituent_samplers=[],
+                    log_key="sampler",
+                )
+            else:
+
+                sampler_ = sampler.construct(
+                    score_nn=score_nn_,
+                )
+            loss_fn_ = loss_fn.construct(
+                score_nn=score_nn_,
+            )
+        # add the infnet sampler
+        sampler_.append_sampler(infnet_sampler)
+
+        # test-time inference.
+        # reconstruct the infnet sampler with shared tasknn weights
+        # to set it as the inference_module
+        inference_module_ = inference_module.construct(
+            inference_nn=task_nn,
+            score_nn=score_nn_,
+            oracle_value_function=oracle_value_function,
+        )
+        inference_module_.log_key = inference_module_.log_key + "_inf"
+
+        if evaluation_module is not None:
+            evaluation_module_ = evaluation_module.construct(
+                score_nn=score_nn_, oracle_value_function=oracle_value_function
+            )
+        else:
+            evaluation_module_ = None
+
+        return cls(
+            vocab=vocab,
+            sampler=sampler_,
+            loss_fn=loss_fn_,
+            oracle_value_function=oracle_value_function,
+            score_nn=score_nn_,
             inference_module=inference_module_,
             evaluation_module=evaluation_module_,
             regularizer=regularizer,

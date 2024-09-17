@@ -16,6 +16,7 @@ from typing import (
 import numpy as np
 import torch
 from allennlp.common.lazy import Lazy
+from allennlp.modules import FeedForward
 from allennlp.training.optimizers import Optimizer
 from structured_prediction_baselines.common import ModelMode
 from structured_prediction_baselines.modules.loss import Loss
@@ -38,6 +39,8 @@ class InferenceNetSampler(Sampler):
         yield from self.inference_nn.parameters()
         if self.cost_augmented_layer is not None:
             yield from self.cost_augmented_layer.parameters()
+        if self.tag_projection_layer is not None:
+            yield from self.tag_projection_layer.parameters()
 
     def __init__(
         self,
@@ -46,6 +49,7 @@ class InferenceNetSampler(Sampler):
         score_nn: ScoreNN,
         cost_augmented_layer: Optional[CostAugmentedLayer] = None,
         oracle_value_function: Optional[OracleValueFunction] = None,
+        tag_projection_layer: Optional[FeedForward] = None,
         **kwargs: Any,
     ):
         assert ScoreNN is not None
@@ -57,6 +61,7 @@ class InferenceNetSampler(Sampler):
         self.inference_nn = inference_nn
         self.cost_augmented_layer = cost_augmented_layer
         self.loss_fn = loss_fn
+        self.tag_projection_layer = tag_projection_layer
 
         self.logging_children.append(self.loss_fn)
 
@@ -113,9 +118,14 @@ class InferenceNetSampler(Sampler):
         **kwargs: Any,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
 
-        y_inf: torch.Tensor = self.inference_nn(x, buffer).unsqueeze(
-            1
-        )  # (batch_size, 1, ...) unormalized
+        if self.tag_projection_layer:
+            y_inf: torch.Tensor = self.tag_projection_layer(
+                self.inference_nn(x, buffer)
+            ).unsqueeze(1)  # (batch_size, 1, ...) unormalized
+        else:
+            y_inf: torch.Tensor = self.inference_nn(x, buffer).unsqueeze(
+                1
+            )  # (batch_size, 1, ...) unormalized
         # inference_nn is TaskNN so it will output tensor of shape (batch, ...)
         # hence the unsqueeze
 

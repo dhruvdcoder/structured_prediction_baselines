@@ -25,10 +25,14 @@ class SequenceTaggingScoreNN(ScoreNN):
         #         x, buffer
         #     )  # (batch, ...) of unormalized logits
         #     buffer["y_local"] = y_local
-
-        y_local = self.task_nn(
-            x, buffer
-        )  # (batch, ...) of unormalized logits
+        if self.tag_projection_layer:
+            y_local = self.tag_projection_layer(
+                self.task_nn(x, buffer)
+            )  # (batch, ...) of unormalized logits
+        else:
+            y_local = self.task_nn(
+                x, buffer
+            )  # (batch, ...) of unormalized logits
 
         mask = buffer.get("mask")
         mask = mask.unsqueeze(1)
@@ -54,7 +58,12 @@ class SequenceTaggingScoreNN(ScoreNN):
         score = None
 
         local_score = self.compute_local_score(x, y, buffer=buffer)
-
+        if self.residual_x:
+            _, n_samples, _, _ = y.shape
+            embedded_x: torch.Tensor = buffer["embedded_x"]
+            assert len(embedded_x.shape) == 3
+            embedded_x = embedded_x.unsqueeze(dim=1).repeat(1, n_samples, 1, 1)
+            y = torch.cat([y, embedded_x], dim=-1)
         global_score = self.compute_global_score(y, buffer)
 
         return local_score + global_score

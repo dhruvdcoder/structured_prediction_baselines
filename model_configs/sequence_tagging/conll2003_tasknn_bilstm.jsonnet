@@ -6,9 +6,7 @@ local use_wandb = (if test == '1' then false else true);
 local dataset_name = 'conll2003ner';
 local dataset_metadata = (import 'datasets.jsonnet')[dataset_name];
 local num_labels = dataset_metadata.num_labels;
-//local transformer_model = 'bert-base-uncased';
-//local transformer_hidden_dim = 768;
-//local max_length = 256;
+
 
 //local ff_hidden = std.parseJson(std.extVar('ff_hidden'));
 //local label_space_dim = ff_hidden;
@@ -83,7 +81,7 @@ local task_nn = {
                    dataset_metadata.test_file),
   // Model
   model: {
-    type: 'sequence-tagging-with-infnet',
+    type: 'seal-ner',
     label_encoding: 'BIOUL',
     sampler: {
       type: 'appending-container',
@@ -184,4 +182,8 @@ local task_nn = {
     inner_mode: 'score_nn',
     num_steps: { task_nn: 1, score_nn: 1 },
   },
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> fd90a955d9edae124992ebbba14c219abe92180b

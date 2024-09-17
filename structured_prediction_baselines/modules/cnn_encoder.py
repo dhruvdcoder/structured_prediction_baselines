@@ -62,6 +62,13 @@ class Cnn2dEncoder(Seq2VecEncoder):
             self.add_module("conv_layer_%d" % i, conv_layer)
 
         self._dropout = Dropout(dropout)
+        # TODO:: Fix maxpool_output_dim, Add pooling?
+        if output_dim:
+            self.projection_layer = Linear(maxpool_output_dim, output_dim)
+            self._output_dim = output_dim
+        else:
+            self.projection_layer = None
+            self._output_dim = maxpool_output_dim
 
     @overrides
     def get_input_dim(self) -> int:
@@ -73,6 +80,7 @@ class Cnn2dEncoder(Seq2VecEncoder):
 
     def forward(self, tokens: torch.Tensor, mask: torch.BoolTensor = None):
         if mask is not None:
+            # mask: (batch, seq_len)
             tokens = tokens * mask.unsqueeze(1).unsqueeze(-1)
 
         batch_size, n_samples, seq_length, _ = tokens.shape
