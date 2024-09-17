@@ -1,0 +1,46 @@
+name: genbase_spen_global_v3
+description: "Original SPEN global v3"
+program: allennlp
+command:
+- ${program}
+- train-with-wandb
+- global_score_experiment_configs/sweep_configs/gendata/spen/gendata_spen_global_v3.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags="task=mlc,model=spen_global_v3,score_nn_loss=margin,sampler=gbi,dataset=genbase,inference_module=gbi,inference_module_loss=margin"
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_fixed_f1"
+
+parameters:
+  env.dataset_name:
+    value: 'genbase'
+  env.inference_score_weight:
+    value: 1
+  env.ff_dropout_10x:
+    distribution: int_uniform
+    min: 0
+    max: 5
+  env.ff_hidden:
+    value: 400 # bibtex
+  env.ff_linear_layers:
+    value: 1 # bibtex
+  env.ff_weight_decay:
+    distribution: log_uniform
+    min: -12.0
+    max: -2.3
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    min: -11.5
+    max: -4.5
+  env.gbi_lr:
+    distribution: log_uniform
+    min: -5.0
+    max: 0.0
+  env.global_score_hidden_dim:
+    value: 200
+  env.global_score_num_layers:
+    value: 2
+

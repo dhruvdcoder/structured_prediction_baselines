@@ -3,17 +3,17 @@ from structured_prediction_baselines.modules.structured_score.structured_score i
 import torch
 import torch.nn as nn
 import numpy as np
-
+from structured_prediction_baselines.modules.task_nn import TaskNN
 
 @StructuredScore.register("vkp")
 class VKP(StructuredScore):
     """Vectorized Kronecker Product High Order Energy"""
 
-    def __init__(self, num_tags: int, M: int, **kwargs: Any):
+    def __init__(self, num_tags: int, M: int, task_nn:Optional[TaskNN]=None, **kwargs: Any):
         """
         TODO: Change kwargs to take hidden size and output size
         """
-        super().__init__()
+        super().__init__(task_nn = task_nn)
         self.num_tags = num_tags
         self.M = M
         self.W = nn.Parameter(
@@ -23,6 +23,7 @@ class VKP(StructuredScore):
         self,
         y: torch.Tensor,
         mask: torch.BoolTensor = None,
+        x: Optional[torch.Tensor] = None, 
         **kwargs: Any,
     ) -> torch.Tensor:
         B, T, C = y.shape

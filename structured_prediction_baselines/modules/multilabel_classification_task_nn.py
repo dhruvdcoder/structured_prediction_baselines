@@ -32,11 +32,13 @@ class MultilabelTaskNN(TaskNN):
         self,
         x: torch.Tensor,
         buffer: Optional[Dict] = None,
+        return_hidden_representation: bool = False, 
         **kwargs: Any,
     ) -> torch.Tensor:
         features = self.feature_network(x)  # (batch, hidden_dim)
+        if return_hidden_representation:
+            return features
         logits = torch.matmul(features, self.label_embeddings.weight.T)
-
         return logits  # unormalized logit of shape (batch, num_labels)
 
 

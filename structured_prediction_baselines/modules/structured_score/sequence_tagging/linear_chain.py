@@ -5,15 +5,21 @@ from structured_prediction_baselines.modules.structured_score.structured_score i
 import torch
 import torch.nn as nn
 import numpy as np
+from structured_prediction_baselines.modules.task_nn import TaskNN
 
 
 @StructuredScore.register("linear-chain")
 class LinearChain(StructuredScore):
-    def __init__(self, num_tags: int, **kwargs: Any):
+    def __init__(
+        self, 
+        num_tags: int, 
+        task_nn:Optional[TaskNN] = None, 
+        **kwargs: Any
+        ):
         """
         TODO: Change kwargs to take hidden size and output size
         """
-        super().__init__()
+        super().__init__(task_nn = task_nn)
         self.M = 1
         self.num_tags = num_tags
         self.W = nn.Parameter(
@@ -28,6 +34,7 @@ class LinearChain(StructuredScore):
         self,
         y: torch.Tensor,
         buffer: Dict,
+        x: Optional[torch.Tensor] = None, 
         **kwargs: Any,
     ) -> torch.Tensor:
         mask = buffer.get("mask")

@@ -1,22 +1,25 @@
 from typing import List, Tuple, Union, Dict, Any, Optional
 from allennlp.common.registrable import Registrable
+from allennlp.common.lazy import Lazy
 import torch
 from .task_nn import TaskNN
 from .structured_score.structured_score import StructuredScore
 
-
 class ScoreNN(torch.nn.Module, Registrable):
     """Concrete base class for creating feature representation for any task."""
-
+    # default_implementation = 'global_only'
     def __init__(
         self,
         task_nn: TaskNN,  # (batch, ...)
-        global_score: Optional[StructuredScore] = None,
+        global_score: Optional[Lazy[StructuredScore]] = None,
         **kwargs: Any,
     ):
         super().__init__()  # type:ignore
         self.task_nn = task_nn
-        self.global_score = global_score
+        if global_score is None:
+            self.global_score = None
+        else:
+            self.global_score = global_score.construct(task_nn = self.task_nn)
         self._dtype = self.compute_input_dtype()
 
     def compute_input_dtype(self) -> Optional[torch.dtype]:
@@ -41,10 +44,13 @@ class ScoreNN(torch.nn.Module, Registrable):
         return None
 
     def compute_global_score(
-        self, y: Any, buffer: Dict, **kwargs: Any  #: (batch, num_samples, ...)
+        self, y: Any, buffer: Dict, x: Any=None, **kwargs: Any  #: (batch, num_samples, ...)
     ) -> Optional[torch.Tensor]:
         if self.global_score is not None:
-            return self.global_score(y, buffer, **kwargs)
+            if x is not None:
+                return self.global_score(y, buffer, x=x, **kwargs)
+            else:
+                return self.global_score(y, buffer, **kwargs)
         else:
             return None
 
@@ -64,8 +70,8 @@ class ScoreNN(torch.nn.Module, Registrable):
 
         if local_score is not None:
             score = local_score
-
-        global_score = self.compute_global_score(y, buffer, **kwargs)  # type: ignore
+        
+        global_score = self.compute_global_score(y, buffer, x=x, **kwargs)  # type: ignore
 
         if global_score is not None:
             if score is not None:
@@ -74,3 +80,5 @@ class ScoreNN(torch.nn.Module, Registrable):
                 score = global_score
 
         return score  # (batch, num_samples)
+
+ScoreNN.register("global_only")(ScoreNN)

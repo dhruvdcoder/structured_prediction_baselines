@@ -1,0 +1,50 @@
+name: genbase_dvn
+description: "Original DVN."
+program: allennlp
+command:
+- ${program}
+- train-with-wandb
+- model_configs/multilabel_classification/v2.5/gendata_dvn.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags=task=mlc,model=dvn,sampler=gbi+adv+gt,dataset=genbase,inference_module=gbi,inference_module=gbi,sampler=gbi+adv+gt
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_fixed_f1"
+
+early_terminate:
+  type: hyperband
+  min_iter: 20
+
+parameters:
+  env.dataset_name:
+    value: 'genbase'
+  env.ff_dropout_10x:
+    distribution: int_uniform
+    min: 0
+    max: 5
+  env.ff_hidden:
+    value: 400 # bibtex
+  env.ff_linear_layers:
+    value: 1
+  env.ff_weight_decay:
+    distribution: log_uniform
+    min: -12.0
+    max: -2.3
+  env.global_score_hidden_dim:
+    distribution: q_uniform
+    min: 50  #100
+    max: 449 #400
+    q: 100
+
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    min: -12.0
+    max: -4.5
+  env.gbi_lr:
+    distribution: log_uniform
+    min: -7.0
+    max: -2.3
+

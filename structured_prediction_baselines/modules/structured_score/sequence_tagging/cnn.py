@@ -1,16 +1,21 @@
 from typing import List, Tuple, Union, Dict, Any, Optional
 from structured_prediction_baselines.modules.structured_score.structured_score import StructuredScore
+from structured_prediction_baselines.modules.task_nn import TaskNN
 import torch
 from structured_prediction_baselines.modules.cnn_encoder import Cnn2dEncoder
 
 
 @StructuredScore.register("cnn")
 class CNN(StructuredScore):
-    def __init__(self, num_tags: int, **kwargs: Any):
+    def __init__(self, 
+        num_tags: int,
+        task_nn:Optional[TaskNN] = None, 
+        **kwargs: Any
+        ):
         """
         TODO: Change kwargs to take hidden size and output size
         """
-        super().__init__()
+        super().__init__(task_nn=task_nn)
         self.num_tags = num_tags
         self.encoder = Cnn2dEncoder(num_tags, embedding_dim=1, num_filters=50, ngram_filter_sizes=(3,), dropout=0.1)
 
@@ -18,6 +23,7 @@ class CNN(StructuredScore):
         self,
         y: torch.Tensor,
         buffer: Dict,
+        x: Optional[torch.Tensor] = None, 
         **kwargs: Any,
     ) -> torch.Tensor:
         mask = buffer["mask"]

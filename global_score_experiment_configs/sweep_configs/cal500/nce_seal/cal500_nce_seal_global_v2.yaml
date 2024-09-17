@@ -1,0 +1,64 @@
+command:
+- ${program}
+- train-with-wandb
+- global_score_experiment_configs/sweep_configs/cal500/nce_seal/cal500_nce_discrete_tasknn_reverse_global_v2.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags="task=mlc,model=nce_seal_global_v2,sampler=inference_net_continuous_samples,dataset=cal500,inference_module=inference_net,inference_module=tasknn,sampler=tasknn_contiuous_samples"
+- ${args}
+- --file-friendly-logging
+description: Train tasknn using cross-entropy and  score loss (v(f(x),y)). The score-nn
+  will be trained using NCE with a - sign (score-ln Pn). The samples are taken as
+  discrete samples from the tasknn output.
+early_terminate:
+  min_iter: 20
+  type: hyperband
+method: bayes
+metric:
+  goal: maximize
+  name: validation/best_fixed_f1
+name: cal500_nce_discrete_minus_tasknn_reverse_global_v2
+parameters:
+  env.cross_entropy_loss_weight:
+    value: 1
+  env.dataset_name:
+    value: cal500
+  env.dvn_score_loss_weight:
+    distribution: log_uniform
+    max: 2.3
+    min: -6.9
+  env.ff_dropout_10x:
+    value: 5
+  env.ff_hidden:
+    value: 500
+  env.ff_linear_layers:
+    value: 5
+  env.ff_weight_decay:
+    value: 1e-05
+  env.global_score_hidden_dim:
+    value: 200
+  env.global_score_num_layers:
+    value: 1
+  env.score_nn_steps:
+    distribution: q_uniform
+    max: 11.99
+    min: 0
+    q: 3
+  env.task_nn_steps:
+    distribution: q_uniform
+    max: 10
+    min: 0
+    q: 5
+  model.loss_fn.num_samples:
+    distribution: q_uniform
+    max: 80
+    min: 20
+    q: 20
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    max: -4.5
+    min: -11.5
+  trainer.optimizer.optimizers.task_nn.lr:
+    distribution: log_uniform
+    max: -4.5
+    min: -11.5
+program: allennlp

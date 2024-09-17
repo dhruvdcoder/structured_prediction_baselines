@@ -1,0 +1,22 @@
+wandb_version: 1
+
+env.dataset_name:
+  value: genbase
+env.ff_dropout_10x:
+  value: 3
+env.ff_hidden:
+  value: 400
+env.ff_linear_layers:
+  value: 1
+env.ff_weight_decay:
+  value: 5.9671286841228394e-05
+env.gbi_lr:
+  value: 0.09179917768679433
+env.global_score_hidden_dim:
+  value: 200
+env.global_score_num_layers:
+  value: 1
+env.inference_score_weight:
+  value: 1
+trainer.optimizer.optimizers.score_nn.lr:
+  value: 0.0002841068258551719

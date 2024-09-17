@@ -4,6 +4,7 @@ from allennlp.nn.util import add_positional_features
 
 from structured_prediction_baselines.modules.self_attention_encoder import SelfAttentionEncoder
 from structured_prediction_baselines.modules.structured_score.structured_score import StructuredScore
+from structured_prediction_baselines.modules.task_nn import TaskNN
 import torch
 
 
@@ -19,8 +20,9 @@ class SelfAttention(StructuredScore):
                  output_dim: int = None,
                  dropout: float = 0.1,
                  use_positional_encoding: bool = True,
+                 task_nn:Optional[TaskNN] = None, 
                  **kwargs: Any):
-        super().__init__()
+        super().__init__(task_nn=task_nn)
         self.num_tags = num_tags
         self.reduction = reduction
         self.M = M
@@ -41,6 +43,7 @@ class SelfAttention(StructuredScore):
         self,
         y: torch.Tensor,
         buffer: Dict,
+        x: Optional[torch.Tensor] = None, 
         **kwargs: Any,
     ) -> torch.Tensor:
         mask = buffer["mask"]
@@ -86,8 +89,8 @@ class SelfAttention(StructuredScore):
 
 @StructuredScore.register("self-attention-full-sequence")
 class SelfAttentionFullSequence(SelfAttention):
-    def __init__(self, num_tags: int, reduction: str = "max", **kwargs: Any):
-        super().__init__(num_tags, reduction, **kwargs)
+    def __init__(self, num_tags: int, reduction: str = "max", task_nn:TaskNN=None, **kwargs: Any):
+        super().__init__(num_tags=num_tags, reduction=reduction, task_nn=task_nn, **kwargs)
 
     def _get_attention_mask(self, n_samples: int, mask: torch.Tensor):
         batch_size, seq_length = mask.shape

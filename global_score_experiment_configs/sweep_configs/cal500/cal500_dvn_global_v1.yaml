@@ -1,0 +1,45 @@
+name: cal500_dvn_global_v1
+description: "Original DVN."
+program: allennlp
+command:
+- ${program}
+- train-with-wandb
+- global_score_experiment_configs/sweep_configs/cal500/cal500_dvn_global_v1.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags=task=mlc,model=dvn_global_v1,sampler=gbi+adv+gt,dataset=cal500,inference_module=gbi,inference_module=gbi,sampler=gbi+adv+gt
+- ${args}
+- --file-friendly-logging
+method: bayes
+metric:
+  goal: maximize
+  name: "validation/best_fixed_f1"
+
+early_terminate:
+  type: hyperband
+  min_iter: 20
+
+parameters:
+  env.dataset_name:
+    value: 'cal500'
+  env.ff_dropout_10x:
+    value: 3
+  env.ff_hidden:
+    value: 500 # cal500
+  env.ff_linear_layers:
+    value: 5
+  env.ff_weight_decay:
+    value: 1e-05
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    min: -12.0
+    max: -4.5
+  env.gbi_lr:
+    distribution: log_uniform
+    min: -5.0
+    max: 0
+  env.global_score_hidden_dim_1:
+    value: 200
+  env.global_score_hidden_dim_2:
+    value: 200
+  env.global_score_num_layers:
+    value: 2

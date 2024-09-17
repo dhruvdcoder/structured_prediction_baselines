@@ -1,0 +1,221 @@
+{
+    "dataset_reader": {
+        "type": "arff",
+        "num_labels": 27
+    },
+    "model": {
+        "type": "multi-label-classification",
+        "inference_module": {
+            "type": "gradient-based-inference",
+            "gradient_descent_loop": {
+                "optimizer": {
+                    "type": "adam",
+                    "lr": 0.10942131291656398,
+                    "weight_decay": 0
+                }
+            },
+            "log_key": "inference",
+            "loss_fn": {
+                "type": "multi-label-dvn-score",
+                "log_key": "neg_dvn_score",
+                "reduction": "none"
+            },
+            "number_init_samples": 1,
+            "output_space": {
+                "type": "multi-label-relaxed",
+                "default_value": 0,
+                "num_labels": 27
+            },
+            "random_mixing_in_init": 1,
+            "sample_picker": {
+                "type": "best"
+            },
+            "stopping_criteria": 30
+        },
+        "initializer": {
+            "regexes": [
+                [
+                    ".*_linear_layers.*weight",
+                    {
+                        "nonlinearity": "relu",
+                        "type": "kaiming_uniform"
+                    }
+                ],
+                [
+                    ".*linear_layers.*bias",
+                    {
+                        "type": "zero"
+                    }
+                ]
+            ]
+        },
+        "loss_fn": {
+            "type": "multi-label-dvn-bce",
+            "log_key": "dvn_bce"
+        },
+        "oracle_value_function": {
+            "type": "per-instance-f1",
+            "differentiable": false
+        },
+        "sampler": {
+            "type": "appending-container",
+            "constituent_samplers": [
+                {
+                    "gradient_descent_loop": {
+                        "optimizer": {
+                            "lr": 0.10942131291656398,
+                            "type": "adam",
+                            "weight_decay": 0
+                        }
+                    },
+                    "log_key": "gbi",
+                    "loss_fn": {
+                        "log_key": "neg_dvn_score",
+                        "reduction": "none",
+                        "type": "multi-label-dvn-score"
+                    },
+                    "number_init_samples": 1,
+                    "output_space": {
+                        "default_value": 0,
+                        "num_labels": 27,
+                        "type": "multi-label-relaxed"
+                    },
+                    "random_mixing_in_init": 1,
+                    "sample_picker": {
+                        "type": "best"
+                    },
+                    "stopping_criteria": 20,
+                    "type": "gradient-based-inference"
+                },
+                {
+                    "gradient_descent_loop": {
+                        "optimizer": {
+                            "lr": 0.10942131291656398,
+                            "type": "adam",
+                            "weight_decay": 0
+                        }
+                    },
+                    "log_key": "adv",
+                    "loss_fn": {
+                        "constituent_loss": {
+                            "log_key": "dvn_bce",
+                            "reduction": "none",
+                            "type": "multi-label-dvn-bce"
+                        },
+                        "log_key": "neg",
+                        "reduction": "none",
+                        "type": "negative"
+                    },
+                    "number_init_samples": 1,
+                    "output_space": {
+                        "default_value": 0,
+                        "num_labels": 27,
+                        "type": "multi-label-relaxed"
+                    },
+                    "random_mixing_in_init": 1,
+                    "sample_picker": {
+                        "type": "best"
+                    },
+                    "stopping_criteria": 20,
+                    "type": "gradient-based-inference"
+                },
+                {
+                    "type": "ground-truth"
+                }
+            ],
+            "log_key": "sampler"
+        },
+        "score_nn": {
+            "type": "multi-label-classification",
+            "global_score": {
+                "type": "multi-label-feedforward",
+                "feedforward": {
+                    "activations": "softplus",
+                    "hidden_dims": 200,
+                    "input_dim": 27,
+                    "num_layers": 1
+                }
+            },
+            "task_nn": {
+                "type": "multi-label-classification",
+                "feature_network": {
+                    "activations": [
+                        "softplus"
+                    ],
+                    "dropout": [
+                        0
+                    ],
+                    "hidden_dims": 400,
+                    "input_dim": 1186,
+                    "num_layers": 1
+                },
+                "label_embeddings": {
+                    "embedding_dim": 400,
+                    "vocab_namespace": "labels"
+                }
+            }
+        }
+    },
+    "train_data_path": "data/genbase-stratified10folds-meka/Genbase-fold@(1|2|3|4|5|6).arff",
+    "validation_data_path": "data/genbase-stratified10folds-meka/Genbase-fold@(7|8).arff",
+    "test_data_path": "data/genbase-stratified10folds-meka/Genbase-fold@(9|10).arff",
+    "trainer": {
+        "type": "gradient_descent_minimax",
+        "callbacks": [
+            "track_epoch_callback",
+            "slurm",
+            {
+                "sub_callbacks": [
+                    {
+                        "priority": 100,
+                        "type": "log_best_validation_metrics"
+                    }
+                ],
+                "type": "wandb_allennlp"
+            }
+        ],
+        "checkpointer": {
+            "keep_most_recent_by_count": 1
+        },
+        "cuda_device": 0,
+        "grad_norm": {
+            "score_nn": 10
+        },
+        "inner_mode": "task_nn",
+        "learning_rate_schedulers": {
+            "score_nn": {
+                "type": "reduce_on_plateau",
+                "factor": 0.5,
+                "mode": "max",
+                "patience": 5,
+                "verbose": true
+            }
+        },
+        "num_epochs": 300,
+        "num_steps": {
+            "score_nn": 1,
+            "task_nn": 0
+        },
+        "optimizer": {
+            "optimizers": {
+                "score_nn": {
+                    "type": "adamw",
+                    "lr": 0.0008455873276507856,
+                    "weight_decay": 0.02363099785094907
+                }
+            }
+        },
+        "patience": 20,
+        "validation_metric": "+fixed_f1"
+    },
+    "type": "train_test_log_to_wandb",
+    "data_loader": {
+        "batch_size": 32,
+        "shuffle": true
+    },
+    "evaluate_on_test": true,
+    "validation_dataset_reader": {
+        "type": "arff",
+        "num_labels": 27
+    }
+}

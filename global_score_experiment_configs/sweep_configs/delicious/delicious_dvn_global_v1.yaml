@@ -1,0 +1,47 @@
+command:
+- ${program}
+- train-with-wandb
+- global_score_experiment_configs/sweep_configs/bibtex/bibtex_dvn_global_v1.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags=task=mlc,model=dvn,sampler=gbi+adv+gt,dataset=delicious,inference_module=gbi,inference_module=gbi,sampler=gbi+adv+gt
+- ${args}
+- --file-friendly-logging
+description: Original DVN with global v1
+early_terminate:
+  min_iter: 20
+  type: hyperband
+method: bayes
+metric:
+  goal: maximize
+  name: validation/best_fixed_f1
+name: delicious_dvn
+parameters:
+  env.dataset_name:
+    value: delicious
+  env.ff_dropout_10x:
+    distribution: int_uniform
+    max: 5
+    min: 0
+  env.ff_hidden:
+    value: 500
+  env.ff_linear_layers:
+    value: 2
+  env.ff_weight_decay:
+    distribution: log_uniform
+    max: -2.3
+    min: -12
+  env.gbi_lr:
+    distribution: log_uniform
+    max: 0
+    min: -5
+  env.global_score_hidden_dim_1:
+    value: 200
+  env.global_score_hidden_dim_2:
+    value: 200
+  env.global_score_num_layers:
+    value: 2
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    max: -4.5
+    min: -12
+program: allennlp

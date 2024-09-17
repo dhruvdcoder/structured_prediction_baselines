@@ -1,0 +1,42 @@
+command:
+- ${program}
+- train-with-wandb
+- global_score_experiment_configs/sweep_configs/gendata/nce/gendata_nce_discrete_fixed_tasknn_global_v3.jsonnet
+- --include-package=structured_prediction_baselines
+- --wandb-tags="task=mlc,model=nce_global_v3,sampler=fixed_taskNN_discrete_samples,dataset=delicious,inference_module=gbi"
+- ${args}
+- --file-friendly-logging
+description: Train scoreNN using NCE loss with fixed noise model (taskNN). Global v3
+early_terminate:
+  min_iter: 20
+  type: hyperband
+method: bayes
+metric:
+  goal: maximize
+  name: validation/best_fixed_f1
+name: delicious_train_nce_discrete_fixed_tasknn_global_v3
+parameters:
+  env.dataset_name:
+    value: delicious
+  env.ff_dropout_10x:
+    value: 1
+  env.ff_hidden:
+    value: 400
+  env.ff_linear_layers:
+    value: 2
+  env.ff_weight_decay:
+    value: 1e-05
+  env.global_score_hidden_dim:
+    value: 200
+  env.global_score_num_layers:
+    value: 2
+  model.loss_fn.num_samples:
+    distribution: q_uniform
+    max: 100
+    min: 20
+    q: 20
+  trainer.optimizer.optimizers.score_nn.lr:
+    distribution: log_uniform
+    max: -4.5
+    min: -11.5
+program: allennlp
