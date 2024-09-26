@@ -27,7 +27,7 @@ class MultilabelClassificationFeedforwardStructuredScore(StructuredScore):
         buffer: Dict,
         **kwargs: Any,
     ) -> torch.Tensor:
-        hidden = self.feedforward(y)  # (batch, num_samples, hidden_dim)
+        hidden = self.feedforward(y.float())  # (batch, num_samples, hidden_dim)
         score = torch.nn.functional.linear(
             hidden, self.projection_vector
         )  # unormalized (batch, num_samples)
